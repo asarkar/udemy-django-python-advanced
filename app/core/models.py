@@ -24,13 +24,11 @@ class UserManager(BaseUserManager["User"]):
 
         return user
 
-    def create_superuser(self, email: str, password: str | None = None) -> User:
-        user = self.create_user(email, password)
-        user.is_staff = True
-        user.is_superuser = True
-        user.save(using=self._db)
+    def create_superuser(self, email: str, password: str | None = None, **kwargs: Any) -> User:
+        kwargs.setdefault("is_staff", True)
+        kwargs.setdefault("is_superuser", True)
 
-        return user
+        return self.create_user(email, password, **kwargs)
 
 
 class User(AbstractBaseUser, PermissionsMixin):

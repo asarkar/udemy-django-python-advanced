@@ -18,7 +18,11 @@ lint = [
     "ruff",
     "mypy",
     "django-stubs",
-    "django-stubs-ext"
+    "django-stubs-ext",
+    "djangorestframework-stubs"
+]
+doc = [
+    "drf-spectacular"
 ]
 
 [tool.uv]
@@ -35,7 +39,10 @@ exclude = [
 ignore_errors = false
 warn_return_any = true
 disallow_untyped_defs = true
-plugins = ["mypy_django_plugin.main"]
+plugins = [
+    "mypy_django_plugin.main",
+    "mypy_drf_plugin.main",
+]
 
 [tool.django-stubs]
 # Intentionally left empty, `django_settings_module` will be read from DJANGO_SETTINGS_MODULE env var.
@@ -43,7 +50,11 @@ plugins = ["mypy_django_plugin.main"]
 
 [tool.ruff]
 line-length = 100
-extend-exclude = ["build", "*.egg-info", "migrations"]
+extend-exclude = [
+    "build",
+    "*.egg-info",
+    "migrations"
+]
 
 [tool.ruff.lint]
 select = [
