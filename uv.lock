@@ -512,6 +512,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "django" },
     { name = "djangorestframework" },
+    { name = "drf-spectacular" },
 ]
 
 [package.dev-dependencies]
@@ -519,9 +520,6 @@ dev = [
     { name = "factory-boy" },
     { name = "faker" },
     { name = "pytest" },
-]
-doc = [
-    { name = "drf-spectacular" },
 ]
 lint = [
     { name = "django-stubs" },
@@ -535,6 +533,7 @@ lint = [
 requires-dist = [
     { name = "django", specifier = "~=5.0" },
     { name = "djangorestframework" },
+    { name = "drf-spectacular" },
 ]
 
 [package.metadata.requires-dev]
@@ -543,7 +542,6 @@ dev = [
     { name = "faker" },
     { name = "pytest" },
 ]
-doc = [{ name = "drf-spectacular" }]
 lint = [
     { name = "django-stubs" },
     { name = "django-stubs-ext" },

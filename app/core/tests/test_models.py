@@ -4,7 +4,9 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from faker import Faker
 
+from ..models import Recipe
 from ..models import User as CustomUser
+from .factories import RecipeFactory, UserFactory
 
 User: type[CustomUser] = get_user_model()
 fake = Faker()
@@ -42,3 +44,9 @@ class ModelTests(TestCase):
 
         self.assertTrue(user.is_superuser)
         self.assertTrue(user.is_staff)
+
+    def test_create_recipe(self) -> None:
+        user = User.objects.create_user(**UserFactory.build_dict())
+        recipe = Recipe.objects.create(**RecipeFactory.build_dict(user=user))
+
+        self.assertEqual(str(recipe), recipe.title)

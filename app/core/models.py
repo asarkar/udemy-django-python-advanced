@@ -6,6 +6,8 @@ from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
 
+from app import settings
+
 
 # Why there's no circular dependency although the two classes refer to each other?
 # 1. Class definitions are executed top-to-bottom - `UserManager` is fully defined before `User`
@@ -40,3 +42,15 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     USERNAME_FIELD = "email"
+
+
+class Recipe(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True)
+    time_minutes = models.IntegerField()
+    price = models.DecimalField(max_digits=5, decimal_places=2)
+    link = models.CharField(max_length=255, blank=True)
+
+    def __str__(self) -> str:
+        return self.title

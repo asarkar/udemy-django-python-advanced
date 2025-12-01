@@ -5,7 +5,14 @@
 
 # PyCharm
 .vscode/
-.idea/
+# Ignore everything in .idea/
+.idea/*
+
+# But track these files
+!.idea/*.iml
+!.idea/modules.xml
+!.idea/inspectionProfiles/
+!.idea/vcs.xml
 
 # Python
 *.pyc

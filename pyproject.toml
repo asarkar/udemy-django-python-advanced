@@ -5,7 +5,8 @@ requires-python = ">=3.14"
 
 dependencies = [
     "django~=5.0",
-    "djangorestframework"
+    "djangorestframework",
+    "drf-spectacular"
 ]
 
 [dependency-groups]
@@ -21,9 +22,6 @@ lint = [
     "django-stubs-ext",
     "djangorestframework-stubs"
 ]
-doc = [
-    "drf-spectacular"
-]
 
 [tool.uv]
 default-groups = "all"
@@ -31,10 +29,9 @@ default-groups = "all"
 [tool.mypy]
 # https://mypy.readthedocs.io/en/stable/command_line.html#cmdoption-mypy-exclude
 exclude = [
-    "venv",
+    ".venv",
     "build",
-    "manage.py",
-    ".*/migrations/.*",
+    "manage.py"
 ]
 ignore_errors = false
 warn_return_any = true
@@ -43,6 +40,10 @@ plugins = [
     "mypy_django_plugin.main",
     "mypy_drf_plugin.main",
 ]
+
+[[tool.mypy.overrides]]
+module = ["core.migrations", "core.tests.factories"]
+ignore_errors = true
 
 [tool.django-stubs]
 # Intentionally left empty, `django_settings_module` will be read from DJANGO_SETTINGS_MODULE env var.
