@@ -18,9 +18,9 @@ dev = [
 lint = [
     "ruff",
     "mypy",
-    "django-stubs",
+    "django-stubs[compatible-mypy]",
     "django-stubs-ext",
-    "djangorestframework-stubs"
+    "djangorestframework-stubs[compatible-mypy]"
 ]
 
 [tool.uv]

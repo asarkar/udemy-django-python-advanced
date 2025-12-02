@@ -6,7 +6,7 @@ import factory
 from django.db import models
 from factory.django import DjangoModelFactory
 
-from ..models import Recipe, User
+from ..models import Recipe, Tag, User
 
 
 class BaseFactory[T: models.Model](DjangoModelFactory[T]):
@@ -63,3 +63,38 @@ class RecipeFactory(BaseFactory[Recipe]):
         lambda _: Decimal(f"{random.randint(5, 100)}.{random.randint(0, 99):02d}")
     )
     link = factory.Faker("url")
+
+    # M2M fields require a saved instance before we can write to them.
+    #
+    # Django M2M fields are not simple attributes. Internally:
+    # - `recipe.tags` is a `RelatedManager`, not a list
+    # - Cannot assign like `recipe.tags = [...]`
+    # - Must call `.add()` _after_ the instance is saved
+    #
+    # Because the M2M relation uses a separate join table, Django needs the `recipe.id` first.
+    @factory.post_generation
+    def tags(
+        self,
+        create: bool,
+        extracted: list[Tag] | None,
+    ) -> None:
+        """
+        Many-to-many field handler.
+        - Default: empty list
+        - If tags are provided: add them after instance is saved
+        """
+        if not create or not extracted:
+            return
+
+        for tag in extracted:
+            if tag.pk is None:
+                tag.save()
+            self.tags.add(tag)
+
+
+class TagFactory(BaseFactory[Tag]):
+    class Meta:
+        model = Tag
+
+    user = factory.SubFactory(UserFactory)
+    name = factory.Faker("word")

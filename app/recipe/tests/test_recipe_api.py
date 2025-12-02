@@ -1,13 +1,17 @@
 from http import HTTPStatus
+from typing import Any
 
-from core.models import Recipe
+from core.models import Recipe, Tag
 from core.models import User as CustomUser
-from core.tests.factories import RecipeFactory, UserFactory
+from core.tests.factories import RecipeFactory, TagFactory, UserFactory
 from django.test import TestCase
 from django.urls import reverse
+from faker import Faker
 from rest_framework.test import APIClient
 
 from recipe.serializers import RecipeDetailSerializer, RecipeSerializer
+
+fake = Faker()
 
 
 def recipe_detail_url(recipe_id: int) -> str:
@@ -145,3 +149,84 @@ class PrivateRecipeAPITests(TestCase):
 
         self.assertEqual(res.status_code, HTTPStatus.NOT_FOUND)
         self.assertTrue(Recipe.objects.filter(id=recipe.id).exists())
+
+    def test_create_recipe_with_new_tags(self) -> None:
+        tags = [{"name": fake.word()}, {"name": fake.word()}]
+        payload = RecipeFactory.build_dict() | {"tags": tags}
+        payload.pop("user")
+
+        res = self.api_client.post(self.recipes_url, payload, format="json")
+
+        self.assertEqual(res.status_code, HTTPStatus.CREATED)
+        recipes = Recipe.objects.filter(user=self.user)
+        self.assertEqual(recipes.count(), 1)
+        recipe = recipes[0]
+        self.assertEqual(recipe.tags.count(), 2)
+        for tag in tags:
+            exists = recipe.tags.filter(
+                name=tag["name"],
+                user=self.user,
+            ).exists()
+            self.assertTrue(exists)
+
+    def test_create_recipe_with_existing_tags(self) -> None:
+        tag = TagFactory.create(user=self.user)
+        tags = [{"name": tag.name}, {"name": fake.word()}]
+        payload = RecipeFactory.build_dict() | {"tags": tags}
+        payload.pop("user")
+
+        res = self.api_client.post(self.recipes_url, payload, format="json")
+
+        self.assertEqual(res.status_code, HTTPStatus.CREATED)
+        recipes = Recipe.objects.filter(user=self.user)
+        self.assertEqual(recipes.count(), 1)
+        recipe = recipes[0]
+        self.assertEqual(recipe.tags.count(), 2)
+        self.assertIn(tag, recipe.tags.all())
+        for t in tags:
+            exists = recipe.tags.filter(
+                name=t["name"],
+                user=self.user,
+            ).exists()
+            self.assertTrue(exists)
+
+    def test_create_tag_on_update(self) -> None:
+        recipe = RecipeFactory.create(user=self.user)
+        tags = [{"name": fake.word()}]
+        payload = {"tags": tags}
+        url = recipe_detail_url(recipe.id)
+
+        res = self.api_client.patch(url, payload, format="json")
+
+        self.assertEqual(res.status_code, HTTPStatus.OK)
+        tag = Tag.objects.get(user=self.user, name=tags[0]["name"])
+        # tags are fetched from the DB, not cached in the in-memory recipe,
+        # so, no need to refresh recipe from DB.
+        self.assertIn(tag, recipe.tags.all())
+
+    def test_update_recipe_assign_tag(self) -> None:
+        tag1 = TagFactory.create(user=self.user)
+        recipe = RecipeFactory.create(user=self.user)
+        recipe.tags.add(tag1)
+        tag2 = TagFactory.create(user=self.user)
+        tags = [{"name": tag2.name}]
+        payload = {"tags": tags}
+        url = recipe_detail_url(recipe.id)
+
+        res = self.api_client.patch(url, payload, format="json")
+
+        self.assertEqual(res.status_code, HTTPStatus.OK)
+        self.assertNotIn(tag1, recipe.tags.all())
+        self.assertIn(tag2, recipe.tags.all())
+
+    def test_clear_recipe_tags(self) -> None:
+        tag = TagFactory.create(user=self.user)
+        recipe = RecipeFactory.create(user=self.user)
+        recipe.tags.add(tag)
+        payload: dict[str, list[dict[str, Any]]] = {"tags": []}
+        url = recipe_detail_url(recipe.id)
+
+        res = self.api_client.patch(url, payload, format="json")
+
+        self.assertEqual(res.status_code, HTTPStatus.OK)
+        self.assertEqual(recipe.tags.count(), 0)

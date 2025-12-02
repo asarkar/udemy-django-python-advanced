@@ -4,7 +4,7 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from faker import Faker
 
-from ..models import Recipe
+from ..models import Recipe, Tag
 from ..models import User as CustomUser
 from .factories import RecipeFactory, UserFactory
 
@@ -46,7 +46,13 @@ class ModelTests(TestCase):
         self.assertTrue(user.is_staff)
 
     def test_create_recipe(self) -> None:
-        user = User.objects.create_user(**UserFactory.build_dict())
+        user = UserFactory.create()
         recipe = Recipe.objects.create(**RecipeFactory.build_dict(user=user))
 
         self.assertEqual(str(recipe), recipe.title)
+
+    def test_create_tag(self) -> None:
+        user = UserFactory.create()
+        tag = Tag.objects.create(user=user, name=fake.name())
+
+        self.assertEqual(str(tag), tag.name)
