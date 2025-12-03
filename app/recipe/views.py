@@ -4,6 +4,8 @@ from typing import cast
 from core.models import Ingredient, Recipe, Tag
 from core.models import User as CustomUser
 from django.db.models import Model, QuerySet
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import mixins, status, viewsets
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import action
@@ -13,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer, ModelSerializer
 
 from .serializers import (
+    BoolParamsSerializer,
     IngredientSerializer,
     RecipeDetailSerializer,
     RecipeImageSerializer,
@@ -21,14 +24,43 @@ from .serializers import (
 )
 
 
+@extend_schema_view(
+    list=extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "tags",
+                OpenApiTypes.STR,
+                description="Comma separated list of tags",
+            ),
+            OpenApiParameter(
+                "ingredients",
+                OpenApiTypes.STR,
+                description="Comma separated list of ingredients",
+            ),
+        ]
+    )
+)
 class RecipeViewSet(viewsets.ModelViewSet[Recipe]):
     serializer_class = RecipeSerializer
     queryset = Recipe.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
+    def _params_to_ints(self, ids: str) -> list[int]:
+        return [int(str_id) for str_id in ids.split(",")]
+
     def get_queryset(self) -> QuerySet[Recipe]:
-        return self.queryset.filter(user=cast(CustomUser, self.request.user)).order_by("-id")
+        tags = self.request.query_params.get("tags")
+        ingredients = self.request.query_params.get("ingredients")
+        qs = self.queryset
+        if tags:
+            tag_ids = self._params_to_ints(tags)
+            qs = qs.filter(tags__id__in=tag_ids)
+        if ingredients:
+            ingredient_ids = self._params_to_ints(ingredients)
+            qs = qs.filter(ingredients__id__in=ingredient_ids)
+
+        return qs.filter(user=cast(CustomUser, self.request.user)).order_by("-id").distinct()
 
     def get_serializer_class(self) -> type[ModelSerializer[Recipe]]:
         if self.action == "retrieve":
@@ -52,7 +84,18 @@ class RecipeViewSet(viewsets.ModelViewSet[Recipe]):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class BaseRecipeAttrViewSet[T: Model](
+@extend_schema_view(
+    list=extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "assigned_only",
+                OpenApiTypes.BOOL,
+                description="Filter by items assigned to recipes",
+            )
+        ]
+    )
+)
+class AbstractRecipeAttrViewSet[T: Model](
     mixins.DestroyModelMixin,
     mixins.UpdateModelMixin,
     mixins.ListModelMixin,
@@ -80,17 +123,24 @@ class BaseRecipeAttrViewSet[T: Model](
         pass
 
     def get_queryset(self) -> QuerySet[T]:
+        bool_params = BoolParamsSerializer(data=self.request.query_params)
+        bool_params.is_valid(raise_exception=True)
+
+        assigned_only = bool_params.validated_data.get("assigned_only")
         qs = self.queryset  # mypy now knows it's a QuerySet[T]
+        if assigned_only:
+            qs = qs.filter(recipe__isnull=False)
+
         user = cast(CustomUser, self.request.user)
-        return qs.filter(user=user).order_by("-name")
+        return qs.filter(user=user).order_by("-name").distinct()
 
 
 # Mixins must be declared before GenericViewSet
-class TagViewSet(BaseRecipeAttrViewSet[Tag]):
+class TagViewSet(AbstractRecipeAttrViewSet[Tag]):
     serializer_class = TagSerializer
     queryset = Tag.objects.all()
 
 
-class IngredientViewSet(BaseRecipeAttrViewSet[Ingredient]):
+class IngredientViewSet(AbstractRecipeAttrViewSet[Ingredient]):
     serializer_class = IngredientSerializer
     queryset = Ingredient.objects.all()

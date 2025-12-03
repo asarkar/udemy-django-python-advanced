@@ -25,7 +25,9 @@ Key differences from the course setup:
 * Browsable API (Swagger)
 
 ## API Endpoints
-TBD
+
+![Recipe API](images/recipe-api.jpg "Recipe API")
+![User API](images/user-api.jpg "User API")
 
 ## Technologies
 

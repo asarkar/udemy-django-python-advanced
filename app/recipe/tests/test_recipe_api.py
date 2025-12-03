@@ -273,6 +273,46 @@ class PrivateRecipeAPITests(TestCase):
             ).exists()
             self.assertTrue(exists)
 
+    def test_filter_by_tags(self) -> None:
+        recipe1 = RecipeFactory.create(user=self.user)
+        recipe2 = RecipeFactory.create(user=self.user)
+        tag1 = TagFactory.create(user=self.user)
+        tag2 = TagFactory.create(user=self.user)
+        recipe1.tags.add(tag1)
+        recipe2.tags.add(tag2)
+        recipe3 = RecipeFactory.create(user=self.user)
+
+        params = {"tags": f"{tag1.id},{tag2.id}"}
+        res = self.api_client.get(self.recipes_url, params)
+
+        s1 = RecipeSerializer(recipe1)
+        s2 = RecipeSerializer(recipe2)
+        s3 = RecipeSerializer(recipe3)
+
+        self.assertIn(s1.data, res.data)
+        self.assertIn(s2.data, res.data)
+        self.assertNotIn(s3.data, res.data)
+
+    def test_filter_by_ingredients(self) -> None:
+        recipe1 = RecipeFactory.create(user=self.user)
+        recipe2 = RecipeFactory.create(user=self.user)
+        ingredient1 = IngredientFactory.create(user=self.user)
+        ingredient2 = IngredientFactory.create(user=self.user)
+        recipe1.ingredients.add(ingredient1)
+        recipe2.ingredients.add(ingredient2)
+        recipe3 = RecipeFactory.create(user=self.user)
+
+        params = {"ingredients": f"{ingredient1.id},{ingredient2.id}"}
+        res = self.api_client.get(self.recipes_url, params)
+
+        s1 = RecipeSerializer(recipe1)
+        s2 = RecipeSerializer(recipe2)
+        s3 = RecipeSerializer(recipe3)
+
+        self.assertIn(s1.data, res.data)
+        self.assertIn(s2.data, res.data)
+        self.assertNotIn(s3.data, res.data)
+
 
 class ImageUploadTests(APITestCase):
     api_client: APIClient

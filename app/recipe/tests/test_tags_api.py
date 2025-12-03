@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 from core.models import Tag
 from core.models import User as CustomUser
-from core.tests.factories import TagFactory, UserFactory
+from core.tests.factories import RecipeFactory, TagFactory, UserFactory
 from django.test import TestCase
 from django.urls import reverse
 from faker import Faker
@@ -86,3 +86,33 @@ class PrivateTagsAPITests(TestCase):
 
         self.assertEqual(res.status_code, HTTPStatus.NO_CONTENT)
         self.assertFalse(Tag.objects.filter(id=tag.id).exists())
+
+    def test_filter_tags_assigned_to_recipes(self) -> None:
+        tag1 = TagFactory.create(user=self.user)
+        tag2 = TagFactory.create(user=self.user)
+        recipe = RecipeFactory.create(user=self.user)
+        recipe.tags.add(tag1)
+
+        params = {"assigned_only": True}
+        res = self.api_client.get(self.tags_url, params)
+
+        s1 = TagSerializer(tag1)
+        s2 = TagSerializer(tag2)
+
+        self.assertIn(s1.data, res.data)
+        self.assertNotIn(s2.data, res.data)
+
+    def test_filter_tags_unique(self) -> None:
+        tag = TagFactory.create(user=self.user)
+        TagFactory.create(user=self.user)
+
+        recipe1 = RecipeFactory.create(user=self.user)
+        recipe2 = RecipeFactory.create(user=self.user)
+
+        recipe1.tags.add(tag)
+        recipe2.tags.add(tag)
+
+        params = {"assigned_only": True}
+        res = self.api_client.get(self.tags_url, params)
+
+        self.assertEqual(len(res.data), 1)

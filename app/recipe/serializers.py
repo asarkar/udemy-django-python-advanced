@@ -121,3 +121,7 @@ class RecipeImageSerializer(serializers.ModelSerializer[Recipe]):
         fields = ["id", "image"]
         read_only_fields = ["id"]
         extra_kwargs = {"image": {"required": True}}
+
+
+class BoolParamsSerializer(serializers.Serializer[dict[str, bool | None]]):
+    assigned_only = serializers.BooleanField(required=False)

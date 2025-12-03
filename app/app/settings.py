@@ -11,7 +11,6 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
 import atexit
-import logging
 import os
 import shutil
 import tempfile
@@ -133,9 +132,6 @@ TMP_ROOT_NAME = "django_media"
 TMP_ROOT = os.path.join(tempfile.gettempdir(), TMP_ROOT_NAME)
 os.makedirs(TMP_ROOT, exist_ok=True)
 
-logger = logging.getLogger(__name__)
-logger.info("TMP_ROOT: %s", TMP_ROOT)
-
 # per-run media dir under the consistent tmp root
 # MEDIA_ROOT = where uploaded files are stored on disk
 MEDIA_ROOT = os.path.join(TMP_ROOT, f"run_{os.getpid()}")
@@ -146,6 +142,7 @@ MEDIA_URL = "/media/"
 
 # register cleanup only for the runserver worker process (not the autoreloader parent)
 if os.environ.get("RUN_MAIN") == "true":
+    print(f"TMP_ROOT: {TMP_ROOT}")
     atexit.register(lambda: shutil.rmtree(TMP_ROOT, ignore_errors=True))
 
 # Default primary key field type

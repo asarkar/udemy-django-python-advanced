@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 from core.models import Ingredient
 from core.models import User as CustomUser
-from core.tests.factories import IngredientFactory, UserFactory
+from core.tests.factories import IngredientFactory, RecipeFactory, UserFactory
 from django.test import TestCase
 from django.urls import reverse
 from faker import Faker
@@ -86,3 +86,33 @@ class PrivateIngredientsAPITests(TestCase):
 
         self.assertEqual(res.status_code, HTTPStatus.NO_CONTENT)
         self.assertFalse(Ingredient.objects.filter(id=ingredient.id).exists())
+
+    def test_filter_ingredients_assigned_to_recipes(self) -> None:
+        ingredient1 = IngredientFactory.create(user=self.user)
+        ingredient2 = IngredientFactory.create(user=self.user)
+        recipe = RecipeFactory.create(user=self.user)
+        recipe.ingredients.add(ingredient1)
+
+        params = {"assigned_only": True}
+        res = self.api_client.get(self.ingredients_url, params)
+
+        s1 = IngredientSerializer(ingredient1)
+        s2 = IngredientSerializer(ingredient2)
+
+        self.assertIn(s1.data, res.data)
+        self.assertNotIn(s2.data, res.data)
+
+    def test_filter_ingredients_unique(self) -> None:
+        ingredient = IngredientFactory.create(user=self.user)
+        IngredientFactory.create(user=self.user)
+
+        recipe1 = RecipeFactory.create(user=self.user)
+        recipe2 = RecipeFactory.create(user=self.user)
+
+        recipe1.ingredients.add(ingredient)
+        recipe2.ingredients.add(ingredient)
+
+        params = {"assigned_only": True}
+        res = self.api_client.get(self.ingredients_url, params)
+
+        self.assertEqual(len(res.data), 1)
