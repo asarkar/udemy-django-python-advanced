@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os.path
+import uuid
 from typing import Any
 
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
@@ -45,6 +47,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     USERNAME_FIELD = "email"
 
 
+def recipe_image_file_path(_: Recipe | None, filename: str) -> str:
+    ext = os.path.splitext(filename)[1]
+    filename = f"{uuid.uuid4()}{ext}"
+
+    return os.path.join("recipe", filename)
+
+
 class Recipe(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
@@ -54,6 +63,7 @@ class Recipe(models.Model):
     link = models.CharField(max_length=255, blank=True)
     tags: ManyToManyField[Tag, Any] = models.ManyToManyField("Tag")
     ingredients: ManyToManyField[Ingredient, Any] = models.ManyToManyField("Ingredient")
+    image = models.ImageField(null=True, upload_to=recipe_image_file_path)
 
     def __str__(self) -> str:
         return self.title

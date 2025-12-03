@@ -10,6 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 
+import atexit
+import logging
+import os
+import shutil
+import tempfile
 from pathlib import Path
 
 # from django.conf.global_settings import AUTH_USER_MODEL
@@ -122,7 +127,26 @@ USE_TZ = True
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.2/howto/static-files/
 
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
+
+TMP_ROOT_NAME = "django_media"
+TMP_ROOT = os.path.join(tempfile.gettempdir(), TMP_ROOT_NAME)
+os.makedirs(TMP_ROOT, exist_ok=True)
+
+logger = logging.getLogger(__name__)
+logger.info("TMP_ROOT: %s", TMP_ROOT)
+
+# per-run media dir under the consistent tmp root
+# MEDIA_ROOT = where uploaded files are stored on disk
+MEDIA_ROOT = os.path.join(TMP_ROOT, f"run_{os.getpid()}")
+os.makedirs(MEDIA_ROOT, exist_ok=True)
+
+# MEDIA_URL = the public URL prefix used to access those files
+MEDIA_URL = "/media/"
+
+# register cleanup only for the runserver worker process (not the autoreloader parent)
+if os.environ.get("RUN_MAIN") == "true":
+    atexit.register(lambda: shutil.rmtree(TMP_ROOT, ignore_errors=True))
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -132,3 +156,6 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 AUTH_USER_MODEL = "core.User"
 
 REST_FRAMEWORK = {"DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema"}
+
+# Needed for image upload to work from the browsable interface.
+SPECTACULAR_SETTINGS = {"COMPONENT_SPLIT_REQUEST": True}

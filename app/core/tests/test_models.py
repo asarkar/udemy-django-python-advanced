@@ -1,9 +1,12 @@
 import random
+from pathlib import PurePosixPath
+from unittest.mock import MagicMock, patch
 
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from faker import Faker
 
+from .. import models
 from ..models import Ingredient, Recipe, Tag
 from ..models import User as CustomUser
 from .factories import RecipeFactory, UserFactory
@@ -67,3 +70,14 @@ class ModelTests(TestCase):
         user = UserFactory.create()
         ingredient = Ingredient.objects.create(user=user, name=self.fake.name())
         self.assertEqual(str(ingredient), ingredient.name)
+
+    @patch("core.models.uuid.uuid4")
+    def test_recipe_file_name_uuid(self, mock_uuid: MagicMock) -> None:
+        mock_uuid.return_value = "test-uuid"
+
+        file_path = models.recipe_image_file_path(None, "image.jpg")
+
+        expected = "recipe/test-uuid.jpg"
+        # PurePosixPath(...).as_posix() gives a consistent "recipe/test-uuid.jpg" string
+        # regardless of what the OS separator is (\ vs /).
+        self.assertEqual(PurePosixPath(file_path).as_posix(), expected)

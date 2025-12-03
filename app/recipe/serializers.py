@@ -1,30 +1,67 @@
 from typing import Any
 
 from core.models import Ingredient, Recipe, Tag
+from django.db.models import Model
 from rest_framework import serializers
 
 
-class TagSerializer(serializers.ModelSerializer[Tag]):
+class AbstractAttrSerializer[T: Model](serializers.ModelSerializer[T]):
+    """Shared serializer for Tag and Ingredient."""
+
     class Meta:
+        model: type[Model] | None = None  # overridden by subclasses
+        fields = ["id", "name"]
+        read_only_fields = ["id"]
+        abstract = True  # tells DRF this class has no concrete model
+
+
+class TagSerializer(AbstractAttrSerializer[Tag]):
+    class Meta(AbstractAttrSerializer.Meta):
         model = Tag
-        fields = ["id", "name"]
-        read_only_fields = ["id"]
 
 
-class IngredientSerializer(serializers.ModelSerializer[Ingredient]):
-    class Meta:
+class IngredientSerializer(AbstractAttrSerializer[Ingredient]):
+    class Meta(AbstractAttrSerializer.Meta):
         model = Ingredient
-        fields = ["id", "name"]
-        read_only_fields = ["id"]
+
+
+# Serializers / Actions:
+#   - RecipeSerializer        : list (GET /recipes/) & create/update (POST/PUT/PATCH)
+#   - RecipeDetailSerializer  : retrieve (GET /recipes/{id}/)
+#   - RecipeImageSerializer   : upload action (POST /recipes/{id}/upload-image/)
+#
+# +--------------+------------------+------------------------+-----------------------+
+# | Field        | RecipeSerializer | RecipeDetailSerializer | RecipeImageSerializer |
+# +--------------+------------------+------------------------+-----------------------+
+# | id           | R                | R                      | R                     |
+# | title        | RW               | RW                     | —                     |
+# | time_minutes | RW               | RW                     | —                     |
+# | price        | RW               | RW                     | —                     |
+# | link         | RW               | RW                     | —                     |
+# | description  | W                | R                      | —                     |
+# | image        | —                | R                      | W                     |
+# +--------------+------------------+------------------------+-----------------------+
+#
+# Legend: R = read-only, W = write-only, RW = read & write, — = not included
 
 
 class RecipeSerializer(serializers.ModelSerializer[Recipe]):
     tags = TagSerializer(many=True, required=False)
     ingredients = IngredientSerializer(many=True, required=False)
+    description = serializers.CharField(write_only=True, required=False)
 
     class Meta:
         model = Recipe
-        fields = ["id", "title", "time_minutes", "price", "link", "tags", "ingredients"]
+        fields = [
+            "id",
+            "title",
+            "time_minutes",
+            "price",
+            "link",
+            "tags",
+            "ingredients",
+            "description",
+        ]
         read_only_fields = ["id"]
 
     def create(self, validated_data: dict[str, Any]) -> Recipe:
@@ -68,5 +105,19 @@ class RecipeSerializer(serializers.ModelSerializer[Recipe]):
 
 
 class RecipeDetailSerializer(RecipeSerializer):
+    description = serializers.CharField(read_only=True)
+    image = serializers.ImageField(read_only=True)
+
     class Meta(RecipeSerializer.Meta):
-        fields = RecipeSerializer.Meta.fields + ["description"]
+        fields = RecipeSerializer.Meta.fields + ["image"]
+        read_only_fields = RecipeSerializer.Meta.read_only_fields + ["image"]
+
+
+# Separate serializer because it's best practice to upload one type of data to an API;
+# we don't want the same API to accept form data as well as an image (multipart form).
+class RecipeImageSerializer(serializers.ModelSerializer[Recipe]):
+    class Meta:
+        model = Recipe
+        fields = ["id", "image"]
+        read_only_fields = ["id"]
+        extra_kwargs = {"image": {"required": True}}

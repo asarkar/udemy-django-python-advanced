@@ -4,21 +4,25 @@ from typing import cast
 from core.models import Ingredient, Recipe, Tag
 from core.models import User as CustomUser
 from django.db.models import Model, QuerySet
-from rest_framework import mixins, viewsets
+from rest_framework import mixins, status, viewsets
 from rest_framework.authentication import TokenAuthentication
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.serializers import BaseSerializer
+from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.serializers import BaseSerializer, ModelSerializer
 
 from .serializers import (
     IngredientSerializer,
     RecipeDetailSerializer,
+    RecipeImageSerializer,
     RecipeSerializer,
     TagSerializer,
 )
 
 
 class RecipeViewSet(viewsets.ModelViewSet[Recipe]):
-    serializer_class = RecipeDetailSerializer
+    serializer_class = RecipeSerializer
     queryset = Recipe.objects.all()
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
@@ -26,13 +30,26 @@ class RecipeViewSet(viewsets.ModelViewSet[Recipe]):
     def get_queryset(self) -> QuerySet[Recipe]:
         return self.queryset.filter(user=cast(CustomUser, self.request.user)).order_by("-id")
 
-    def get_serializer_class(self) -> type[RecipeSerializer]:
-        if self.action == "list":
-            return RecipeSerializer
+    def get_serializer_class(self) -> type[ModelSerializer[Recipe]]:
+        if self.action == "retrieve":
+            return RecipeDetailSerializer
+        if self.action == "upload_image":
+            return RecipeImageSerializer
         return self.serializer_class
 
     def perform_create(self, serializer: BaseSerializer[Recipe]) -> None:
         serializer.save(user=self.request.user)
+
+    @action(detail=True, methods=["post"], url_path="upload-image")
+    def upload_image(self, request: Request, pk: str | None = None) -> Response:
+        recipe = self.get_object()
+        serializer = self.get_serializer(recipe, data=request.data)
+
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class BaseRecipeAttrViewSet[T: Model](

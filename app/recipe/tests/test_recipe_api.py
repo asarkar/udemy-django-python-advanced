@@ -1,3 +1,5 @@
+import os
+import tempfile
 from http import HTTPStatus
 from typing import Any
 
@@ -7,7 +9,8 @@ from core.tests.factories import IngredientFactory, RecipeFactory, TagFactory, U
 from django.test import TestCase
 from django.urls import reverse
 from faker import Faker
-from rest_framework.test import APIClient
+from PIL import Image
+from rest_framework.test import APIClient, APITestCase
 
 from recipe.serializers import RecipeDetailSerializer, RecipeSerializer
 
@@ -269,3 +272,45 @@ class PrivateRecipeAPITests(TestCase):
                 user=self.user,
             ).exists()
             self.assertTrue(exists)
+
+
+class ImageUploadTests(APITestCase):
+    api_client: APIClient
+    user: CustomUser
+
+    @classmethod
+    def setUpTestData(cls: type[ImageUploadTests]) -> None:
+        cls.api_client = APIClient()
+        cls.user = UserFactory.create()
+        cls.api_client.force_authenticate(cls.user)
+
+    def setUp(self) -> None:
+        self.recipe = RecipeFactory.create(user=self.user)
+
+    def tearDown(self) -> None:
+        self.recipe.image.delete()
+
+    def _image_upload_url(self, recipe_id: int) -> str:
+        return reverse("recipe:recipe-upload-image", args=[recipe_id])
+
+    def test_upload_image(self) -> None:
+        url = self._image_upload_url(self.recipe.id)
+        with tempfile.NamedTemporaryFile(suffix=".jpg") as image_file:
+            img = Image.new("RGB", size=(10, 10))
+            img.save(image_file, format="JPEG")
+            # .save set EOF
+            image_file.seek(0)
+            payload = {"image": image_file}
+            res = self.api_client.post(url, payload, format="multipart")
+
+        self.assertEqual(res.status_code, HTTPStatus.OK)
+        self.recipe.refresh_from_db()
+        self.assertIn("image", res.data)
+        self.assertTrue(os.path.exists(self.recipe.image.path))
+
+    def test_upload_image_bad_request(self) -> None:
+        url = self._image_upload_url(self.recipe.id)
+        payload = {"image": "notanimage"}
+        res = self.api_client.post(url, payload, format="multipart")
+
+        self.assertEqual(res.status_code, HTTPStatus.BAD_REQUEST)
