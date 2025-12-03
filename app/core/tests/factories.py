@@ -6,7 +6,7 @@ import factory
 from django.db import models
 from factory.django import DjangoModelFactory
 
-from ..models import Recipe, Tag, User
+from ..models import Ingredient, Recipe, Tag, User
 
 
 class BaseFactory[T: models.Model](DjangoModelFactory[T]):
@@ -91,6 +91,20 @@ class RecipeFactory(BaseFactory[Recipe]):
                 tag.save()
             self.tags.add(tag)
 
+    @factory.post_generation
+    def ingredients(
+        self,
+        create: bool,
+        extracted: list[Ingredient] | None,
+    ) -> None:
+        if not create or not extracted:
+            return
+
+        for ingredient in extracted:
+            if ingredient.pk is None:
+                ingredient.save()
+            self.ingredients.add(ingredient)
+
 
 class TagFactory(BaseFactory[Tag]):
     class Meta:
@@ -98,3 +112,11 @@ class TagFactory(BaseFactory[Tag]):
 
     user = factory.SubFactory(UserFactory)
     name = factory.Faker("word")
+
+
+class IngredientFactory(BaseFactory[Ingredient]):
+    class Meta:
+        model = Ingredient
+
+    name = factory.Faker("word")
+    user = factory.SubFactory(UserFactory)

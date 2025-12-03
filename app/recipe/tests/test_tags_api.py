@@ -5,6 +5,7 @@ from core.models import User as CustomUser
 from core.tests.factories import TagFactory, UserFactory
 from django.test import TestCase
 from django.urls import reverse
+from faker import Faker
 from rest_framework.test import APIClient
 
 from recipe.serializers import TagSerializer
@@ -25,14 +26,11 @@ class PublicTagsAPITests(TestCase):
         self.assertEqual(res.status_code, HTTPStatus.UNAUTHORIZED)
 
 
-def tag_detail_url(tag_id: int) -> str:
-    return reverse("recipe:tag-detail", args=[tag_id])
-
-
 class PrivateTagsAPITests(TestCase):
     api_client: APIClient
     tags_url: str
     user: CustomUser
+    fake: Faker
 
     @classmethod
     def setUpTestData(cls: type[PrivateTagsAPITests]) -> None:
@@ -40,6 +38,10 @@ class PrivateTagsAPITests(TestCase):
         cls.user = UserFactory.create()
         cls.api_client.force_authenticate(cls.user)
         cls.tags_url = reverse("recipe:tag-list")
+        cls.fake = Faker()
+
+    def _tag_detail_url(self, tag_id: int) -> str:
+        return reverse("recipe:tag-detail", args=[tag_id])
 
     def test_retrieve_tags(self) -> None:
         TagFactory.create_batch(2, user=self.user)
@@ -66,8 +68,8 @@ class PrivateTagsAPITests(TestCase):
     def test_update_tag(self) -> None:
         tag = TagFactory.create(user=self.user)
 
-        payload = {"name": "Dessert"}
-        url = tag_detail_url(tag.id)
+        payload = {"name": self.fake.word()}
+        url = self._tag_detail_url(tag.id)
         res = self.api_client.patch(url, payload)
 
         self.assertEqual(res.status_code, HTTPStatus.OK)
@@ -79,7 +81,7 @@ class PrivateTagsAPITests(TestCase):
     def test_delete_tag(self) -> None:
         tag = TagFactory.create(user=self.user)
 
-        url = tag_detail_url(tag.id)
+        url = self._tag_detail_url(tag.id)
         res = self.api_client.delete(url)
 
         self.assertEqual(res.status_code, HTTPStatus.NO_CONTENT)

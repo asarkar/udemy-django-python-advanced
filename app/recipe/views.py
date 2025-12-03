@@ -1,14 +1,20 @@
+from abc import ABC, abstractmethod
 from typing import cast
 
-from core.models import Recipe, Tag
+from core.models import Ingredient, Recipe, Tag
 from core.models import User as CustomUser
-from django.db.models import QuerySet
+from django.db.models import Model, QuerySet
 from rest_framework import mixins, viewsets
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.serializers import BaseSerializer
 
-from .serializers import RecipeDetailSerializer, RecipeSerializer, TagSerializer
+from .serializers import (
+    IngredientSerializer,
+    RecipeDetailSerializer,
+    RecipeSerializer,
+    TagSerializer,
+)
 
 
 class RecipeViewSet(viewsets.ModelViewSet[Recipe]):
@@ -29,17 +35,45 @@ class RecipeViewSet(viewsets.ModelViewSet[Recipe]):
         serializer.save(user=self.request.user)
 
 
-# Mixins must be declared before GenericViewSet
-class TagViewSet(
+class BaseRecipeAttrViewSet[T: Model](
     mixins.DestroyModelMixin,
     mixins.UpdateModelMixin,
     mixins.ListModelMixin,
-    viewsets.GenericViewSet[Tag],
+    viewsets.GenericViewSet[T],
+    ABC,
 ):
-    serializer_class = TagSerializer
-    queryset = Tag.objects.all()
+    """Abstract base class for Tag and Ingredient attribute viewsets."""
+
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def get_queryset(self) -> QuerySet[Tag]:
-        return self.queryset.filter(user=cast(CustomUser, self.request.user)).order_by("-name")
+    # DRF defines .queryset as a class attribute that may be None.
+    # Force subclasses to provide a queryset.
+    # Base:
+    # - queryset is a method wrapped as a property, not a real attribute.
+    # - It returns QuerySet[T].
+    #
+    # Subclass:
+    # - queryset is a class-level variable, not a property.
+    #
+    # Mypy considers this an override mismatch, so, we suppress the violation.
+    @property
+    @abstractmethod
+    def queryset(self) -> QuerySet[T]:  # type: ignore[override]
+        pass
+
+    def get_queryset(self) -> QuerySet[T]:
+        qs = self.queryset  # mypy now knows it's a QuerySet[T]
+        user = cast(CustomUser, self.request.user)
+        return qs.filter(user=user).order_by("-name")
+
+
+# Mixins must be declared before GenericViewSet
+class TagViewSet(BaseRecipeAttrViewSet[Tag]):
+    serializer_class = TagSerializer
+    queryset = Tag.objects.all()
+
+
+class IngredientViewSet(BaseRecipeAttrViewSet[Ingredient]):
+    serializer_class = IngredientSerializer
+    queryset = Ingredient.objects.all()
