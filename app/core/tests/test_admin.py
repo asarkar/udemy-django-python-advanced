@@ -6,8 +6,8 @@ from django.urls import reverse
 from faker import Faker
 from rest_framework.test import APIClient
 
-from ..models import User as CustomUser
-from .factories import UserFactory
+from core.models import User as CustomUser
+from core.tests.factories import UserFactory
 
 User: type[CustomUser] = get_user_model()
 

@@ -54,7 +54,6 @@ while IFS='' read -r -d '' manage; do
       uv run ruff format --check "$project_root_dir"
     fi
 
-    DJANGO_SETTINGS_MODULE="${project_dir_name}.settings" \
     uv run \
       --directory "$project_root_dir" \
       mypy . \

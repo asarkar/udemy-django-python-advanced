@@ -209,3 +209,19 @@ python manage.py seed_users
 ```
 % ./.github/run.sh <chapter_directory>
 ```
+
+## Deployment
+
+![Deployment Overview](images/deployment.jpg "Deployment Overview")
+
+### Docker
+
+**Nuclear option, delete everything**
+```
+docker system prune -a --volumes -f
+```
+
+**Build and run**
+```
+docker compose -f docker/docker-compose.yml up --build
+```

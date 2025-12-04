@@ -6,7 +6,7 @@ import factory
 from django.db import models
 from factory.django import DjangoModelFactory
 
-from ..models import Ingredient, Recipe, Tag, User
+from core.models import Ingredient, Recipe, Tag, User
 
 
 class BaseFactory[T: models.Model](DjangoModelFactory[T]):

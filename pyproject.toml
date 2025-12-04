@@ -7,7 +7,8 @@ dependencies = [
     "django~=5.0",
     "djangorestframework",
     "drf-spectacular",
-    "Pillow"
+    "Pillow",
+    "django-environ"
 ]
 
 [dependency-groups]
@@ -16,6 +17,7 @@ dev = [
     "factory_boy",
     "Faker"
 ]
+
 lint = [
     "ruff",
     "mypy",
@@ -24,8 +26,14 @@ lint = [
     "djangorestframework-stubs[compatible-mypy]"
 ]
 
+prod = [
+    "gunicorn",
+    "whitenoise",
+    "psycopg[binary]"
+]
+
 [tool.uv]
-default-groups = "all"
+default-groups = ["dev", "lint"]
 
 [tool.mypy]
 # https://mypy.readthedocs.io/en/stable/command_line.html#cmdoption-mypy-exclude
@@ -47,8 +55,7 @@ module = ["core.migrations", "core.tests.factories"]
 ignore_errors = true
 
 [tool.django-stubs]
-# Intentionally left empty, `django_settings_module` will be read from DJANGO_SETTINGS_MODULE env var.
-# https://github.com/typeddjango/django-stubs/issues/2912
+django_settings_module = "app.settings.local"
 
 [tool.ruff]
 line-length = 100

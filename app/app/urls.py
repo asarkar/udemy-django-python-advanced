@@ -29,5 +29,5 @@ urlpatterns = [
     path("api/recipe/", include("recipe.urls")),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media files (suitable for low traffic)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

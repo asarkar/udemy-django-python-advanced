@@ -1,0 +1,41 @@
+# Git + VCS
+.git
+.gitignore
+
+# Python virtualenvs (common names)
+**/.venv
+**/venv
+
+# Editor / OS cruft
+**/.DS_Store
+**/Thumbs.db
+.vscode
+.idea
+
+# Local config / secrets
+.env
+*.env
+
+# Local DBs and logs
+**/*.sqlite3
+**/*.log
+
+# Uploaded + generated files (should not be in image)
+**/media
+**/staticfiles
+
+# Build artifacts
+**/build
+**/dist
+**/*.egg-info
+
+# Python caches / bytecode
+**/__pycache__
+**/*.pyc
+**/*.pyo
+
+# Generic caches (tool caches, caches ending with _cache)
+**/*_cache
+
+# Tests
+**/tests

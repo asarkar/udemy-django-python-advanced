@@ -4,12 +4,11 @@ import os.path
 import uuid
 from typing import Any
 
+from django.conf import settings
 from django.contrib.auth.base_user import AbstractBaseUser, BaseUserManager
 from django.contrib.auth.models import PermissionsMixin
 from django.db import models
 from django.db.models import ManyToManyField
-
-from app import settings
 
 
 # Why there's no circular dependency although the two classes refer to each other?

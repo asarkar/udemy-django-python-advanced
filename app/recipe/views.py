@@ -14,7 +14,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.serializers import BaseSerializer, ModelSerializer
 
-from .serializers import (
+from recipe.serializers import (
     BoolParamsSerializer,
     IngredientSerializer,
     RecipeDetailSerializer,

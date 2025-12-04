@@ -6,10 +6,10 @@ from django.contrib.auth import get_user_model
 from django.test import TestCase
 from faker import Faker
 
-from .. import models
-from ..models import Ingredient, Recipe, Tag
-from ..models import User as CustomUser
-from .factories import RecipeFactory, UserFactory
+from core import models
+from core.models import Ingredient, Recipe, Tag
+from core.models import User as CustomUser
+from core.tests.factories import RecipeFactory, UserFactory
 
 User: type[CustomUser] = get_user_model()
 
